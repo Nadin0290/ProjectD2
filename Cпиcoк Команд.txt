@@ -1,0 +1,76 @@
+Список команд в терминале:
+
+#В самом начале применим миграции моделей:
+python manage.py makemigrations
+python manage.py migrate
+
+#Затем активируем django shell:
+python manage.py shell
+
+#После чего импортируем все модели:
+from news.models import *
+
+#1.Далее по заданию, создаём двух пользователей:
+User1 = User.objects.create_user(username=‘Ivan’)
+User2 = User.objects.create_user(username=‘Oleg’)
+
+#2.Создаём и привязываем модели Author к пользователям:
+Author.objects.create(authorUser=User1)
+Author.objects.create(authorUser=User2)
+
+#3.Добавляем четыре категории:
+Category.objects.create(name=‘C1’)
+Category.objects.create(name=‘C2’)
+Category.objects.create(name=‘C3’)
+Category.objects.create(name=‘C4’)
+
+#4.Добавляем две статьи и одну новость:
+Post.objects.create(author=Author.objects.get(authorUser=User.objects.get(username=‘Ivan’)), categoryType=‘AR’, title=‘article1’, text=‘text of article1’)
+Post.objects.create(author=Author.objects.get(authorUser=User.objects.get(username=‘Oleg’)), categoryType=‘AR’, title=‘article2’, text=‘text of article2’)
+Post.objects.create(author=Author.objects.get(authorUser=User.objects.get(username=‘Ivan’)), categoryType=‘NW’, title=‘news1’, text=‘text of news1’)
+
+#5.Присваиваем им категории сделав сначала get-запрос:
+p1 = Post.objects.get(pk=1)
+p2 = Post.objects.get(pk=2)
+P3 = Post.objects.get(pk=3)
+cat1 = Category.objects.get(name=‘C1’)
+cat2 = Category.objects.get(name=‘C2’)
+cat3 = Category.objects.get(name=‘C3’)
+cat4 = Category.objects.get(name=‘C4’)
+p1.postCategory.add(cat1)
+p1.postCategory.add(cat2)
+p2.postCategory.add(cat2)
+p3.postCategory.add(cat1, cat3)
+
+#6.Созздаём четыре комментария (по одному для каждой статьи/новости):
+Comment.objects.create(commentUser=User.objects.get(username=‘Ivan’), commentPost=Post.objects.get(pk=1), text=‘comment text1’)
+Comment.objects.create(commentUser=User.objects.get(username=‘Oleg’), commentPost=Post.objects.get(pk=1), text=‘comment text2’)
+Comment.objects.create(commentUser=User.objects.get(username=‘Ivan’), commentPost=Post.objects.get(pk=2), text=‘comment text3’)
+Comment.objects.create(commentUser=User.objects.get(username=‘Oleg’), commentPost=Post.objects.get(pk=3), text=‘comment text4’)
+
+#7.применим функции like() и dislike() к статьям/новостям и комментариям, и скорректируем их рейтинг:
+Post.objects.get(pk=1).like()
+Post.objects.get(pk=1).like()
+Post.objects.get(pk=2).dislike()
+Comment.objects.get(pk=1).dislike()
+Comment.objects.get(pk=2).like()
+Comment.objects.get(pk=3).like()
+
+#8.Далее обновим рейтинги пользователей:
+Author.objects.get(authorUser=User.objects.get(username=‘Oleg’)).update_rating()
+Author.objects.get(authorUser=User.objects.get(username=‘Ivan’)).update_rating()
+
+#9.Выводим username и рейтинг лучшего пользователя:
+a = Author.objects.get(authorUser=User.objects.get(username=‘Ivan’))
+a.ratingAuthor
+Author.objects.get(authorUser=User.objects.get(username=‘Oleg’)).ratingAuthor
+best = Author.objects.all().order_by(‘-ratingAuthor’).values(‘authorUser’, ‘ratingAuthor’)[0]
+print(best)
+
+#10.Выводим дату добавления, username автора, рейтинг, заголовок лучшей статьи основываясь на like/dislike к этой статье:
+Post.objects.all().order_by(‘-rating’).values(‘dateCreation’, ‘author’, ‘rating’, ‘title’, ‘text’)[:1]
+Post.objects.all().order_by(‘-rating’)[0].preview()
+
+#11.Выводим все комментарии (дата, пользователь, рейтинг, текст) к этой статье:
+Post.objects.all().order_by(‘-rating’)[0].id
+Comment.objects.filter(commentPost=Post.objects.get(id=Post.objects.all().order_by(‘-rating’)[0].id)).values(‘dateCreation’, ‘commentUser’, ‘rating’, ‘text’)
